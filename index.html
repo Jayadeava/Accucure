@@ -1,0 +1,733 @@
+<!DOCTYPE html><html data-host-mode="dark"><head><meta charset="utf-8"><title>Accucure</title><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><script>Object.defineProperty(document, "cookie", {get: function() { return ""; },set: function() {},configurable: false});</script><script type="module">(async()=>{if(typeof FileSystemFileHandle!=="undefined"&&"createWritable"in FileSystemFileHandle.prototype)return;if(!navigator.storage?.getDirectory)return;try{const{createWorker}=await import("https://esm.sh/opfs-worker@1.3.1");const w=await createWorker();class W{constructor(p){this.p=p;this.c=[];this.x=false}write(d){if(this.x)throw new DOMException("closed","InvalidStateError");if(typeof d==="object"&&"type"in d&&!(d instanceof Blob)&&!(d instanceof ArrayBuffer)){if(d.type==="write")this.c.push(d.data);else if(d.type==="truncate")this.c=[];return}this.c.push(d)}async close(){if(this.x)return;const b=new Blob(this.c);await w.writeFile(this.p,new Uint8Array(await b.arrayBuffer()));this.x=true;this.c=[]}abort(){this.x=true;this.c=[]}}const pF=(h,p)=>new Proxy(h,{get:(t,k)=>k==="createWritable"?async()=>new W(p):typeof t[k]==="function"?t[k].bind(t):t[k]});const pD=(h,p)=>new Proxy(h,{get:(t,k)=>{if(k==="getFileHandle")return async(n,o)=>pF(await t.getFileHandle(n,o),(p+"/"+n).replace(/[/]+/g,"/"));if(k==="getDirectoryHandle")return async(n,o)=>pD(await t.getDirectoryHandle(n,o),(p+"/"+n).replace(/[/]+/g,"/"));return typeof t[k]==="function"?t[k].bind(t):t[k]}});const og=navigator.storage.getDirectory.bind(navigator.storage);navigator.storage.getDirectory=async function(){return pD(await og.call(this),"/")};}catch(e){console.warn("[OPFS]",e)}})();</script><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin=""><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"><style>:root { --host-bg: #0E1217; --host-fg: #eeede4; --host-fg-muted: #A2A6AA; --host-card: rgba(255,255,255,0.04); --host-card-fg: #eeede4; --host-input: rgba(255,255,255,0.04); --host-muted: rgba(255,255,255,0.04); --host-border: rgba(255,255,255,0.06); --host-border-hover: rgba(255,255,255,0.12); --host-primary: #125DA3; --host-secondary: rgba(255,255,255,0.04); --host-secondary-fg: #eeede4; --host-success: #5F9437; --host-error: #D73436; } * { box-sizing: border-box; margin: 0; padding: 0; } :root, html, body { width: 100%; max-width: 100%; height: auto; overflow-x: hidden; overflow-y: visible; background: transparent; font-family: Inter, system-ui, -apple-system, sans-serif; } #sandbox-content { width: 100%; } @media (max-width: 640px) { :where(#sandbox-content svg, #sandbox-content img) { max-width: 100%; height: auto; } } </style></head><body><div id="sandbox-content" style="width: 656px; zoom: 0.5;"><div class="app">
+  <header>
+    <div class="eyebrow">Clinical reference tool</div>
+    <h1>Accucure</h1>
+    <p class="sub">Symptom intake, pattern differentiation and point selection in one sheet. Select symptoms and a pattern, then build, save and print the treatment set.</p>
+  </header>
+
+  <div class="pbar">
+    <select id="patSel"><option value="">No patient selected</option></select>
+    <button class="ghost" id="patNew">New patient</button>
+    <button class="ghost" id="patSave">Save session</button>
+    <button class="ghost" id="patRec">Records</button>
+    <span class="toast" id="pmsg"></span>
+  </div>
+  <div class="newpat" id="newPat" hidden="">
+    <input type="text" id="patName" placeholder="Patient name or initials">
+    <input type="text" id="patNote" placeholder="Age, sex, presenting complaint, relevant history">
+    <button class="solid" id="patCreate">Create</button>
+    <button class="ghost" id="patCancel">Cancel</button>
+  </div>
+  <div class="records" id="recPanel" hidden=""></div>
+
+  <div class="disc" id="disc">
+    <span>Reference only. Locations, depths and cautions follow standard texts — verify on the body and confirm against your training and scope of practice. Needle only within your competence.</span>
+    <button id="discClose" aria-label="Dismiss">×</button>
+  </div>
+
+  <div class="layout">
+    <aside class="panel">
+      <div class="tabs">
+        <button data-tab="sym" class="on">Symptoms</button>
+        <button data-tab="pat">Pattern</button>
+        <button data-tab="map">Map</button>
+      </div>
+
+      <div id="tab-sym">
+        <div class="field"><input id="q" type="text" placeholder="Search symptoms…" autocomplete="off"></div>
+        <div class="row2">
+          <select id="regionF"><option value="">All regions</option><option value="Arm &amp; Hand">Arm &amp; Hand</option><option value="Chest &amp; Abdomen">Chest &amp; Abdomen</option><option value="Ear">Ear</option><option value="Head &amp; Face">Head &amp; Face</option><option value="Leg &amp; Foot">Leg &amp; Foot</option><option value="Lower Back &amp; Hip">Lower Back &amp; Hip</option><option value="Neck &amp; Shoulder">Neck &amp; Shoulder</option><option value="Upper Back">Upper Back</option></select>
+          <select id="merF"><option value="">All meridians</option><option value="Auricular">Auricular</option><option value="Bladder">Bladder</option><option value="Conception Vessel">Conception Vessel</option><option value="Extra point">Extra point</option><option value="Gallbladder">Gallbladder</option><option value="Governing Vessel">Governing Vessel</option><option value="Heart">Heart</option><option value="Kidney">Kidney</option><option value="Large Intestine">Large Intestine</option><option value="Liver">Liver</option><option value="Lung">Lung</option><option value="Pericardium">Pericardium</option><option value="Small Intestine">Small Intestine</option><option value="Spleen">Spleen</option><option value="Stomach">Stomach</option><option value="Triple Energizer">Triple Energizer</option></select>
+        </div>
+        <div id="symptoms" class="symlist"></div>
+        <button id="clearSym" class="ghost wide">Clear symptoms</button>
+      </div>
+
+      <div id="tab-pat" hidden="">
+        <p class="hint">Pick the pattern that fits the presentation. It adds root-treatment points and a diagnostic note to the sheet.</p>
+        <div id="patterns"></div>
+        <button id="clearPat" class="ghost wide">Clear pattern</button>
+      </div>
+
+      <div id="tab-map" hidden="">
+        <p class="hint">Click a region to filter results. Front and back shown.</p>
+        <svg class="bmap" viewBox="0 0 240 264" role="img" aria-label="Body map">
+          <g class="z" data-r="Head &amp; Face"><ellipse cx="62" cy="30" rx="16" ry="19"></ellipse><ellipse cx="172" cy="30" rx="16" ry="19"></ellipse></g>
+          <g class="z" data-r="Neck &amp; Shoulder"><rect x="55" y="48" width="14" height="9"></rect><rect x="165" y="48" width="14" height="9"></rect><rect x="40" y="56" width="44" height="14" rx="6"></rect><rect x="150" y="56" width="44" height="14" rx="6"></rect></g>
+          <g class="z" data-r="Chest &amp; Abdomen"><rect x="42" y="70" width="40" height="62" rx="5"></rect></g>
+          <g class="z" data-r="Upper Back"><rect x="152" y="70" width="40" height="34" rx="5"></rect></g>
+          <g class="z" data-r="Lower Back &amp; Hip"><rect x="152" y="104" width="40" height="28" rx="5"></rect><rect x="45" y="132" width="34" height="22" rx="6"></rect><rect x="155" y="132" width="34" height="22" rx="6"></rect></g>
+          <g class="z" data-r="Arm &amp; Hand"><rect x="27" y="60" width="11" height="54" rx="5"></rect><rect x="86" y="60" width="11" height="54" rx="5"></rect><circle cx="32.5" cy="120" r="6"></circle><circle cx="91.5" cy="120" r="6"></circle><rect x="137" y="60" width="11" height="54" rx="5"></rect><rect x="196" y="60" width="11" height="54" rx="5"></rect><circle cx="142.5" cy="120" r="6"></circle><circle cx="201.5" cy="120" r="6"></circle></g>
+          <g class="z" data-r="Leg &amp; Foot"><rect x="46" y="152" width="13" height="78" rx="4"></rect><rect x="63" y="152" width="13" height="78" rx="4"></rect><rect x="43" y="230" width="18" height="10" rx="3"></rect><rect x="61" y="230" width="18" height="10" rx="3"></rect><rect x="156" y="152" width="13" height="78" rx="4"></rect><rect x="173" y="152" width="13" height="78" rx="4"></rect><rect x="153" y="230" width="18" height="10" rx="3"></rect><rect x="171" y="230" width="18" height="10" rx="3"></rect></g>
+          <g class="z" data-r="Ear"><ellipse cx="80" cy="30" rx="4" ry="7"></ellipse><ellipse cx="190" cy="30" rx="4" ry="7"></ellipse></g>
+          <text x="62" y="254" text-anchor="middle">front</text>
+          <text x="172" y="254" text-anchor="middle">back</text>
+        </svg>
+        <button id="clearRegion" class="ghost wide">Clear region filter</button>
+      </div>
+    </aside>
+
+    <main>
+      <div class="toolbar">
+        <div class="count" id="count">No symptoms selected</div>
+        <select id="sortF" class="mini">
+          <option value="score">Rank by indication strength</option>
+          <option value="region">Group by body region</option>
+        </select>
+      </div>
+      <div id="patBanner" class="patbanner" hidden=""></div>
+      <div id="results" class="results"></div>
+    </main>
+  </div>
+
+  <section id="planWrap" class="plan" hidden="">
+    <div class="plan-head">
+      <h2>Treatment set <span id="planN" class="pill">0</span></h2>
+      <div class="plan-actions">
+        <button id="copyPlan" class="ghost">Copy</button>
+        <button id="printPlan" class="ghost">Print</button>
+        <button id="clearPlan" class="ghost">Clear</button>
+      </div>
+    </div>
+    <ol id="planList" class="planlist"></ol>
+    <p class="foot" id="planFoot"></p>
+  </section>
+
+  <section class="export">
+    <h2>Publish Accucure</h2>
+    <p class="foot">On a phone, use <b>Copy source</b> — downloads get swallowed by the preview frame. In the repo: Add file → Create new file, name it <code>index.html</code>, paste, commit. Then Settings → Pages → main → Save.</p>
+    <div class="exp-actions">
+      <button id="copySrc" class="solid">Copy source</button>
+      <button id="dlApp" class="ghost">Download index.html</button>
+      <button id="expData" class="ghost">Export records</button>
+      <button id="impData" class="ghost">Import records</button>
+      <input type="file" id="impFile" accept="application/json" hidden="">
+    </div>
+    <p class="foot" id="expMsg"></p>
+    <div id="boxWrap"></div>
+  </section>
+
+  <p class="foot">Weights: <span class="w3">3</span> primary · <span class="w2">2</span> secondary · <span class="w1">1</span> supportive. Bilateral unless marked otherwise.</p>
+</div>
+
+<style>
+  *{box-sizing:border-box}
+  .app{width:700px;font-family:Inter,system-ui,-apple-system,sans-serif;color:var(--host-fg);font-size:14px}
+  header{margin-bottom:12px}
+  .eyebrow{font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--host-fg-muted);margin-bottom:6px}
+  h1{font-size:24px;font-weight:600;margin:0 0 6px}
+  .sub{margin:0;color:var(--host-fg-muted);font-size:13px;line-height:1.5;max-width:620px}
+  .pbar{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
+  .pbar select{width:auto;flex:1;min-width:150px;font-size:12px}
+  .newpat{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+  .newpat input{flex:1;min-width:120px}
+  .records{border:1px solid var(--host-border);border-radius:8px;padding:10px;margin-bottom:8px;font-size:12px}
+  .rec{border-bottom:1px dashed var(--host-border);padding:6px 0;line-height:1.5}
+  .rec:last-child{border:0}
+  .rec .muted{color:var(--host-fg-muted)}
+  .disc{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--host-border);border-left:3px solid var(--host-primary);background:var(--host-muted);padding:9px 11px;border-radius:6px;font-size:12px;color:var(--host-fg-muted);line-height:1.45;margin-bottom:14px}
+  .disc button{background:none;border:none;color:var(--host-fg-muted);font-size:16px;line-height:1;cursor:pointer;padding:0 2px}
+  .layout{display:grid;grid-template-columns:250px 1fr;gap:16px;align-items:start}
+  .panel{border:1px solid var(--host-border);border-radius:10px;padding:10px;background:var(--host-card)}
+  .tabs{display:flex;gap:2px;margin-bottom:10px;border-bottom:1px solid var(--host-border)}
+  .tabs button{flex:1;background:none;border:none;border-bottom:2px solid transparent;color:var(--host-fg-muted);font-family:inherit;font-size:12px;padding:6px 2px;cursor:pointer}
+  .tabs button.on{color:var(--host-fg);border-bottom-color:var(--host-primary);font-weight:500}
+  .field{margin-bottom:8px}
+  input[type=text],select{width:100%;font-family:inherit;font-size:13px;padding:7px 9px;border-radius:6px;border:1px solid var(--host-border);background:var(--host-input);color:var(--host-fg)}
+  input[type=text]:focus,select:focus{outline:none;border-color:var(--host-border-hover)}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px}
+  .row2 select{font-size:11px;padding:6px 4px}
+  .hint{font-size:11.5px;color:var(--host-fg-muted);line-height:1.45;margin:0 0 8px}
+  .cat{font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--host-fg-muted);margin:12px 0 5px}
+  .cat:first-child{margin-top:4px}
+  label.sym{display:flex;gap:7px;align-items:center;font-size:12.5px;padding:4px 3px;border-radius:5px;cursor:pointer;line-height:1.3}
+  label.sym:hover{background:var(--host-muted)}
+  label.sym input{accent-color:var(--host-primary);margin:0;flex:none}
+  label.sym.on{color:var(--host-primary);font-weight:500}
+  .patcard{border:1px solid var(--host-border);border-radius:7px;padding:7px 8px;margin-bottom:6px;cursor:pointer;font-size:12px;line-height:1.4}
+  .patcard:hover{border-color:var(--host-border-hover)}
+  .patcard.on{border-color:var(--host-primary);background:var(--host-muted)}
+  .patcard b{display:block;font-weight:500;margin-bottom:2px}
+  .patcard span{color:var(--host-fg-muted);font-size:11px}
+  .bmap{width:100%;height:auto;display:block;margin-bottom:8px}
+  .bmap .z ellipse,.bmap .z rect{fill:var(--host-muted);stroke:var(--host-border);stroke-width:1;cursor:pointer;transition:fill .1s}
+  .bmap .z:hover ellipse,.bmap .z:hover rect{fill:var(--host-primary);opacity:.55}
+  .bmap .z.on ellipse,.bmap .z.on rect{fill:var(--host-primary);opacity:.75}
+  .bmap text{font-size:10px;fill:var(--host-fg-muted);font-family:Inter,sans-serif}
+  .ghost{background:transparent;border:1px solid var(--host-border);color:var(--host-fg-muted);font-family:inherit;font-size:12px;padding:5px 10px;border-radius:6px;cursor:pointer}
+  .ghost:hover{border-color:var(--host-border-hover);color:var(--host-fg)}
+  .solid{background:var(--host-primary);border:1px solid var(--host-primary);color:#fff;font-family:inherit;font-size:12px;padding:5px 12px;border-radius:6px;cursor:pointer}
+  .wide{width:100%;margin-top:10px}
+  .toolbar{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px;min-height:30px}
+  .count{font-size:12px;color:var(--host-fg-muted)}
+  .count b{color:var(--host-fg);font-weight:500}
+  .mini{width:auto;font-size:11px;padding:5px 6px}
+  .patbanner{border:1px solid var(--host-border);border-left:3px solid var(--host-primary);border-radius:7px;padding:8px 10px;font-size:12px;line-height:1.45;margin-bottom:9px;background:var(--host-muted)}
+  .patbanner b{font-weight:500}
+  .results{display:flex;flex-direction:column;gap:9px}
+  .empty{border:1px dashed var(--host-border);border-radius:10px;padding:26px 16px;text-align:center;color:var(--host-fg-muted);font-size:13px;line-height:1.5}
+  .empty p{margin:0 0 4px}
+  .empty .muted{font-size:12px}
+  .empty em{font-style:normal;color:var(--host-fg)}
+  .pt{border:1px solid var(--host-border);border-radius:9px;padding:10px 11px;background:var(--host-card)}
+  .pt.s3{border-left:3px solid var(--host-primary)}
+  .pt.s2{border-left:3px solid var(--host-border-hover)}
+  .pt.s1{border-left:3px solid var(--host-border)}
+  .pt-head{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:5px}
+  .code{font-family:ui-monospace,Menlo,monospace;font-size:12px;font-weight:600;background:var(--host-muted);padding:1px 5px;border-radius:4px}
+  .name{font-weight:500;font-size:13.5px}
+  .mer{font-size:11px;color:var(--host-fg-muted);margin-left:auto}
+  .pt p{margin:0 0 4px;font-size:12.5px;line-height:1.45;color:var(--host-fg-muted)}
+  .pt .k{color:var(--host-fg);font-weight:500}
+  .pt .cau{color:var(--host-error)}
+  .tag{font-size:10.5px;border:1px solid var(--host-border);border-radius:20px;padding:0 7px;color:var(--host-fg-muted);white-space:nowrap}
+  .tag.ton{color:var(--host-primary);border-color:var(--host-primary)}
+  .why{font-size:11.5px;color:var(--host-fg-muted);margin-top:5px;padding-top:5px;border-top:1px dashed var(--host-border)}
+  .why span{color:var(--host-fg)}
+  .add{background:transparent;border:1px solid var(--host-border);color:var(--host-fg);font-family:inherit;font-size:11.5px;padding:4px 9px;border-radius:5px;cursor:pointer;margin-top:7px}
+  .add:hover{background:var(--host-primary);border-color:var(--host-primary);color:#fff}
+  .add.in{background:var(--host-primary);border-color:var(--host-primary);color:#fff}
+  .plan{border:1px solid var(--host-border);border-radius:10px;padding:14px;margin-top:20px;background:var(--host-card)}
+  .plan-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+  .plan h2{font-size:15px;font-weight:500;margin:0;display:flex;align-items:center;gap:8px}
+  .pill{font-size:11px;background:var(--host-primary);color:#fff;border-radius:20px;padding:1px 8px;font-weight:500}
+  .plan-actions{display:flex;gap:6px}
+  .planlist{margin:12px 0 6px;padding-left:20px;font-size:13px;line-height:1.6}
+  .planlist li{margin-bottom:4px}
+  .planlist .loc{color:var(--host-fg-muted);font-size:12px}
+  .planlist .meth{display:block;color:var(--host-fg-muted);font-size:11.5px}
+  .planlist button{background:none;border:none;color:var(--host-fg-muted);cursor:pointer;font-size:13px;padding:0 3px;font-family:inherit}
+  .planlist button:hover{color:var(--host-error)}
+  .export{border:1px solid var(--host-border);border-radius:10px;padding:14px;margin-top:20px}
+  .export h2{font-size:15px;font-weight:500;margin:0 0 6px}
+  .export code{font-family:ui-monospace,monospace;font-size:11.5px;background:var(--host-muted);padding:1px 4px;border-radius:3px}
+  .exp-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+  .srcbox{width:100%;height:170px;margin-top:10px;font-family:ui-monospace,monospace;font-size:10px;line-height:1.4;padding:8px;border-radius:6px;border:1px solid var(--host-border);background:var(--host-input);color:var(--host-fg)}
+  .foot{font-size:11.5px;color:var(--host-fg-muted);margin-top:12px;line-height:1.5}
+  .toast{font-size:11.5px;color:var(--host-primary)}
+  .w3,.w2,.w1{font-family:ui-monospace,monospace;padding:0 3px;border-radius:3px;background:var(--host-muted)}
+  @media (max-width:620px){.layout{grid-template-columns:1fr}}
+  @media print{
+    .panel,.toolbar,.disc,.foot,header,.pbar,.newpat,.records,.export{display:none}
+    .plan{border:none;padding:0;margin:0}
+    .plan-actions{display:none}
+    .planlist{font-size:12px}
+  }
+</style>
+
+<script>
+const $ = id => document.getElementById(id);
+const LS = 'accucure_v1';
+
+const P = [
+  {c:'LI4',n:'Hegu',m:'Large Intestine',r:'Arm & Hand',loc:'Dorsum of hand, midpoint of the radial side of the 2nd metacarpal, between the 1st and 2nd metacarpals.',t:'Perpendicular 0.5–1 cun.',k:'Avoid in pregnancy except for labour induction.'},
+  {c:'LI5',n:'Yangxi',m:'Large Intestine',r:'Arm & Hand',loc:'In the depression of the anatomical snuffbox, between the tendons of EPL and APL.',t:'Perpendicular 0.3–0.5 cun.',k:''},
+  {c:'LI10',n:'Shousanli',m:'Large Intestine',r:'Arm & Hand',loc:'2 cun inferior to LI11 on the LI line, on the dorsal radial forearm.',t:'Perpendicular 0.8–1.2 cun.',k:''},
+  {c:'LI11',n:'Quchi',m:'Large Intestine',r:'Arm & Hand',loc:'Lateral end of the cubital crease, midway between LU5 and the lateral epicondyle, elbow flexed.',t:'Perpendicular 1–1.5 cun.',k:''},
+  {c:'LI14',n:'Binao',m:'Large Intestine',r:'Arm & Hand',loc:'7 cun superior to LI11, on the line to LI15, at the insertion of the deltoid.',t:'Perpendicular 0.5–1 cun.',k:''},
+  {c:'LI15',n:'Jianyu',m:'Large Intestine',r:'Neck & Shoulder',loc:'Anterior and inferior to the acromion, in the depression formed when the arm is abducted.',t:'Perpendicular 0.8–1.5 cun.',k:'Angle toward the joint; avoid the axilla.'},
+  {c:'LI20',n:'Yingxiang',m:'Large Intestine',r:'Head & Face',loc:'In the nasolabial groove, level with the midpoint of the lateral border of the ala nasi.',t:'Transverse, medial-superior 0.3–0.5 cun.',k:''},
+  {c:'ST2',n:'Sibai',m:'Stomach',r:'Head & Face',loc:'Directly below the pupil, in the depression of the infraorbital foramen.',t:'Perpendicular or oblique 0.3–0.5 cun.',k:'Needle gently over the foramen.'},
+  {c:'ST6',n:'Jiache',m:'Stomach',r:'Head & Face',loc:'One finger breadth anterior and superior to the angle of the mandible, over the masseter.',t:'Perpendicular 0.3–0.5 cun.',k:''},
+  {c:'ST7',n:'Xiaguan',m:'Stomach',r:'Head & Face',loc:'In the depression between the zygomatic arch and the mandibular notch, mouth closed.',t:'Perpendicular 0.5–1 cun.',k:'Keep the mouth closed during needling.'},
+  {c:'ST25',n:'Tianshu',m:'Stomach',r:'Chest & Abdomen',loc:'2 cun lateral to the centre of the umbilicus.',t:'Perpendicular 0.8–1.2 cun.',k:'Avoid in pregnancy; caution over abdominal contents.'},
+  {c:'ST35',n:'Dubi',m:'Stomach',r:'Leg & Foot',loc:'With the knee flexed, in the depression below the patella lateral to the patellar ligament.',t:'Perpendicular 0.5–1 cun.',k:'Enter from below the patella, angle slightly superiorly.'},
+  {c:'ST36',n:'Zusanli',m:'Stomach',r:'Leg & Foot',loc:'3 cun inferior to ST35, one finger breadth lateral to the anterior crest of the tibia.',t:'Perpendicular 1–1.5 cun.',k:''},
+  {c:'ST40',n:'Fenglong',m:'Stomach',r:'Leg & Foot',loc:'8 cun superior to the lateral malleolus, two finger breadths lateral to the anterior tibial crest.',t:'Perpendicular 1–1.5 cun.',k:''},
+  {c:'ST41',n:'Jiexi',m:'Stomach',r:'Leg & Foot',loc:'Midpoint of the anterior ankle crease, between the tendons of EHL and EDL.',t:'Perpendicular 0.5–0.8 cun.',k:''},
+  {c:'ST44',n:'Neiting',m:'Stomach',r:'Leg & Foot',loc:'Proximal to the web margin between the 2nd and 3rd toes.',t:'Perpendicular or oblique 0.3–0.5 cun.',k:''},
+  {c:'SP3',n:'Taibai',m:'Spleen',r:'Leg & Foot',loc:'Proximal and inferior to the head of the 1st metatarsal, at the red-white skin junction.',t:'Perpendicular 0.3–0.5 cun.',k:''},
+  {c:'SP4',n:'Gongsun',m:'Spleen',r:'Leg & Foot',loc:'Anteroinferior to the base of the 1st metatarsal, at the red-white skin junction.',t:'Perpendicular 0.5–0.8 cun.',k:''},
+  {c:'SP5',n:'Shangqiu',m:'Spleen',r:'Leg & Foot',loc:'In the depression anterior and inferior to the medial malleolus.',t:'Perpendicular 0.3–0.5 cun.',k:''},
+  {c:'SP6',n:'Sanyinjiao',m:'Spleen',r:'Leg & Foot',loc:'3 cun superior to the medial malleolus, posterior to the medial border of the tibia.',t:'Perpendicular 1–1.5 cun.',k:'Avoid in pregnancy.'},
+  {c:'SP8',n:'Diji',m:'Spleen',r:'Leg & Foot',loc:'3 cun inferior to SP9, posterior to the medial tibial border.',t:'Perpendicular 1–1.5 cun.',k:''},
+  {c:'SP9',n:'Yinlingquan',m:'Spleen',r:'Leg & Foot',loc:'In the depression posterior and inferior to the medial condyle of the tibia.',t:'Perpendicular 1–2 cun.',k:''},
+  {c:'SP10',n:'Xuehai',m:'Spleen',r:'Leg & Foot',loc:'2 cun superior to the superomedial border of the patella, on the bulge of the vastus medialis.',t:'Perpendicular 1–1.5 cun.',k:''},
+  {c:'HT3',n:'Shaohai',m:'Heart',r:'Arm & Hand',loc:'With the elbow flexed, midway between the medial epicondyle and the biceps tendon.',t:'Perpendicular 0.5–1 cun.',k:''},
+  {c:'HT6',n:'Yinxi',m:'Heart',r:'Arm & Hand',loc:'0.5 cun proximal to the wrist crease, radial to the FCU tendon.',t:'Perpendicular 0.3–0.5 cun.',k:''},
+  {c:'HT7',n:'Shenmen',m:'Heart',r:'Arm & Hand',loc:'At the ulnar end of the wrist crease, radial to the FCU tendon.',t:'Perpendicular 0.3–0.5 cun.',k:''},
+  {c:'HT8',n:'Shaofu',m:'Heart',r:'Arm & Hand',loc:'Between the 4th and 5th metacarpals, proximal to the MCP joints, on the palm.',t:'Perpendicular 0.3–0.5 cun.',k:'Painful point.'},
+  {c:'BL1',n:'Jingming',m:'Bladder',r:'Head & Face',loc:'0.1 cun medial and superior to the inner canthus.',t:'Oblique toward the orbit 0.3–0.5 cun.',k:'Retract the globe; avoid the orbital vessels.'},
+  {c:'BL2',n:'Zanzhu',m:'Bladder',r:'Head & Face',loc:'In the depression at the medial end of the eyebrow.',t:'Oblique 0.3–0.5 cun.',k:''},
+  {c:'BL10',n:'Tianzhu',m:'Bladder',r:'Neck & Shoulder',loc:'1.3 cun lateral to the midline, below the occiput, on the lateral border of the trapezius.',t:'Oblique 0.5–0.8 cun toward the occiput.',k:'Avoid deep medial needling toward the medulla.'},
+  {c:'BL13',n:'Feishu',m:'Bladder',r:'Upper Back',loc:'1.5 cun lateral to the lower border of the T3 spinous process.',t:'Oblique 0.5–0.8 cun.',k:'Oblique slightly medially; avoid deep perpendicular needling.'},
+  {c:'BL17',n:'Geshu',m:'Bladder',r:'Upper Back',loc:'1.5 cun lateral to the lower border of the T7 spinous process.',t:'Oblique 0.5–0.8 cun.',k:''},
+  {c:'BL20',n:'Pishu',m:'Bladder',r:'Upper Back',loc:'1.5 cun lateral to the lower border of the T11 spinous process.',t:'Oblique 0.5–0.8 cun.',k:''},
+  {c:'BL21',n:'Weishu',m:'Bladder',r:'Upper Back',loc:'1.5 cun lateral to the lower border of the T12 spinous process.',t:'Oblique 0.5–0.8 cun.',k:''},
+  {c:'BL22',n:'Sanjiaoshu',m:'Bladder',r:'Lower Back & Hip',loc:'1.5 cun lateral to the lower border of the L1 spinous process.',t:'Oblique 0.5–0.8 cun.',k:''},
+  {c:'BL23',n:'Shenshu',m:'Bladder',r:'Lower Back & Hip',loc:'1.5 cun lateral to the lower border of the L2 spinous process.',t:'Perpendicular or oblique 0.8–1.2 cun.',k:'Deep perpendicular needling risks the kidney — keep to 1.2 cun.'},
+  {c:'BL25',n:'Dachangshu',m:'Bladder',r:'Lower Back & Hip',loc:'1.5 cun lateral to the lower border of the L4 spinous process.',t:'Perpendicular 0.8–1.2 cun.',k:''},
+  {c:'BL28',n:'Pangguangshu',m:'Bladder',r:'Lower Back & Hip',loc:'1.5 cun lateral to the lower border of the S2 spinous process.',t:'Perpendicular 0.8–1.2 cun.',k:''},
+  {c:'BL32',n:'Ciliao',m:'Bladder',r:'Lower Back & Hip',loc:'In the 2nd posterior sacral foramen.',t:'Perpendicular 1–1.5 cun.',k:'Confirm the foramen by palpation.'},
+  {c:'BL40',n:'Weizhong',m:'Bladder',r:'Leg & Foot',loc:'Midpoint of the popliteal crease.',t:'Perpendicular 0.5–1 cun.',k:'Avoid the popliteal vessels; knee slightly flexed.'},
+  {c:'BL54',n:'Zhibian',m:'Bladder',r:'Lower Back & Hip',loc:'3 cun lateral to the sacral hiatus, at the level of the 4th sacral foramen.',t:'Perpendicular 1.5–2.5 cun.',k:'Deep needling may reach the sciatic nerve.'},
+  {c:'BL57',n:'Chengshan',m:'Bladder',r:'Leg & Foot',loc:'In the depression at the inferior end of the gastrocnemius bellies, 8 cun below BL40.',t:'Perpendicular 1–1.5 cun.',k:''},
+  {c:'BL60',n:'Kunlun',m:'Bladder',r:'Leg & Foot',loc:'In the depression between the lateral malleolus and the Achilles tendon.',t:'Perpendicular 0.5–0.8 cun.',k:'Avoid in pregnancy.'},
+  {c:'BL61',n:'Pucan',m:'Bladder',r:'Leg & Foot',loc:'In the depression directly below the lateral malleolus.',t:'Perpendicular 0.3–0.5 cun.',k:''},
+  {c:'BL62',n:'Shenmai',m:'Bladder',r:'Leg & Foot',loc:'0.5 cun below the lateral malleolus, in the depression on its inferior border.',t:'Perpendicular 0.3–0.5 cun.',k:''},
+  {c:'KI1',n:'Yongquan',m:'Kidney',r:'Leg & Foot',loc:'On the sole, at the junction of the anterior third and posterior two thirds of the plantar surface.',t:'Perpendicular 0.5–1 cun.',k:'Very sensitive — warn the patient.'},
+  {c:'KI3',n:'Taixi',m:'Kidney',r:'Leg & Foot',loc:'Between the medial malleolus and the Achilles tendon, at the level of the malleolar tip.',t:'Perpendicular 0.5–0.8 cun.',k:'Avoid the posterior tibial artery.'},
+  {c:'KI6',n:'Zhaohai',m:'Kidney',r:'Leg & Foot',loc:'1 cun below the medial malleolus, in the depression on its inferior border.',t:'Perpendicular 0.3–0.5 cun.',k:''},
+  {c:'KI7',n:'Fuliu',m:'Kidney',r:'Leg & Foot',loc:'2 cun directly above KI3, on the anterior border of the Achilles tendon.',t:'Perpendicular 0.5–0.8 cun.',k:''},
+  {c:'PC6',n:'Neiguan',m:'Pericardium',r:'Arm & Hand',loc:'2 cun proximal to the wrist crease, between the tendons of PL and FCR.',t:'Perpendicular 0.5–1 cun.',k:'Avoid the median nerve if paraesthesia is reported.'},
+  {c:'PC7',n:'Daling',m:'Pericardium',r:'Arm & Hand',loc:'At the midpoint of the wrist crease, between the PL and FCR tendons.',t:'Perpendicular 0.3–0.5 cun.',k:''},
+  {c:'PC8',n:'Laogong',m:'Pericardium',r:'Arm & Hand',loc:'At the centre of the palm, between the 2nd and 3rd metacarpals, where the middle finger falls.',t:'Perpendicular 0.3–0.5 cun.',k:'Painful point.'},
+  {c:'TE3',n:'Zhongzhu',m:'Triple Energizer',r:'Arm & Hand',loc:'On the dorsum of the hand, between the 4th and 5th metacarpals, proximal to the MCP joints.',t:'Perpendicular 0.5–1 cun.',k:''},
+  {c:'TE4',n:'Yangchi',m:'Triple Energizer',r:'Arm & Hand',loc:'At the midpoint of the dorsal wrist crease, in the depression ulnar to the EDC tendon.',t:'Perpendicular 0.3–0.5 cun.',k:''},
+  {c:'TE5',n:'Waiguan',m:'Triple Energizer',r:'Arm & Hand',loc:'2 cun proximal to the dorsal wrist crease, between the radius and ulna.',t:'Perpendicular 0.5–1 cun.',k:''},
+  {c:'TE6',n:'Zhigou',m:'Triple Energizer',r:'Arm & Hand',loc:'3 cun proximal to the dorsal wrist crease, on the ulnar side of the radius.',t:'Perpendicular 0.5–1 cun.',k:''},
+  {c:'TE14',n:'Jianliao',m:'Triple Energizer',r:'Neck & Shoulder',loc:'In the depression posterior and inferior to the acromion, arm abducted.',t:'Perpendicular 0.8–1.2 cun.',k:''},
+  {c:'TE17',n:'Yifeng',m:'Triple Energizer',r:'Head & Face',loc:'In the depression between the mastoid process and the angle of the mandible.',t:'Perpendicular 0.5–1 cun.',k:'Avoid the facial nerve and vessels.'},
+  {c:'GB2',n:'Tinghui',m:'Gallbladder',r:'Head & Face',loc:'In the depression between the condyloid process of the mandible and the mastoid, mouth open.',t:'Perpendicular 0.5–1 cun.',k:'Keep the mouth open during needling.'},
+  {c:'GB8',n:'Shuaigu',m:'Gallbladder',r:'Head & Face',loc:'1.5 cun superior to the apex of the ear, on the temporal fascia.',t:'Transverse 0.5–0.8 cun.',k:''},
+  {c:'GB14',n:'Yangbai',m:'Gallbladder',r:'Head & Face',loc:'1 cun directly above the midpoint of the eyebrow.',t:'Transverse 0.3–0.5 cun.',k:''},
+  {c:'GB20',n:'Fengchi',m:'Gallbladder',r:'Neck & Shoulder',loc:'In the depression between the upper portion of the SCM and the trapezius, below the occiput.',t:'Oblique 0.8–1.2 cun toward the opposite eye.',k:'Aim slightly medially and superiorly; avoid deep needling.'},
+  {c:'GB21',n:'Jianjing',m:'Gallbladder',r:'Neck & Shoulder',loc:'Midpoint of the line between C7 and the acromion, on the trapezius.',t:'Perpendicular 0.5–0.8 cun.',k:'Avoid deep needling in pregnancy.'},
+  {c:'GB29',n:'Juliao',m:'Gallbladder',r:'Lower Back & Hip',loc:'Midpoint of the line between the ASIS and the prominence of the greater trochanter.',t:'Perpendicular 1–2 cun.',k:''},
+  {c:'GB30',n:'Huantiao',m:'Gallbladder',r:'Lower Back & Hip',loc:'At the junction of the medial third and lateral two thirds of the line between the greater trochanter and the sacral hiatus.',t:'Perpendicular 1.5–3 cun.',k:'Deep needling may contact the sciatic nerve.'},
+  {c:'GB34',n:'Yanglingquan',m:'Gallbladder',r:'Leg & Foot',loc:'In the depression anterior and inferior to the head of the fibula.',t:'Perpendicular 1–1.5 cun.',k:'Avoid the common peroneal nerve.'},
+  {c:'GB39',n:'Xuanzhong',m:'Gallbladder',r:'Leg & Foot',loc:'3 cun superior to the lateral malleolus, anterior to the fibula.',t:'Perpendicular 0.5–0.8 cun.',k:''},
+  {c:'GB40',n:'Qiuxu',m:'Gallbladder',r:'Leg & Foot',loc:'Anterior and inferior to the lateral malleolus, lateral to the EDL tendon.',t:'Perpendicular 0.3–0.5 cun.',k:''},
+  {c:'GB41',n:'Zulinqi',m:'Gallbladder',r:'Leg & Foot',loc:'In the depression distal to the junction of the 4th and 5th metatarsals.',t:'Perpendicular 0.3–0.5 cun.',k:''},
+  {c:'LIV2',n:'Xingjian',m:'Liver',r:'Leg & Foot',loc:'Proximal to the web margin between the 1st and 2nd toes.',t:'Oblique 0.3–0.5 cun.',k:''},
+  {c:'LIV3',n:'Taichong',m:'Liver',r:'Leg & Foot',loc:'On the dorsum of the foot, in the depression distal to the junction of the 1st and 2nd metatarsals.',t:'Perpendicular 0.5–0.8 cun.',k:'Avoid the dorsalis pedis artery.'},
+  {c:'LIV8',n:'Ququan',m:'Liver',r:'Leg & Foot',loc:'With the knee flexed, in the depression just anterior to the medial end of the popliteal crease.',t:'Perpendicular 1–1.5 cun.',k:'Avoid the femoral vessels.'},
+  {c:'LIV13',n:'Zhangmen',m:'Liver',r:'Chest & Abdomen',loc:'At the free end of the 11th rib.',t:'Oblique 0.5–0.8 cun.',k:''},
+  {c:'LIV14',n:'Qimen',m:'Liver',r:'Chest & Abdomen',loc:'In the 6th intercostal space, 4 cun lateral to the midline, directly below the nipple.',t:'Oblique 0.5–0.8 cun.',k:'Oblique along the intercostal space.'},
+  {c:'LU1',n:'Zhongfu',m:'Lung',r:'Chest & Abdomen',loc:'Lateral to the infraclavicular fossa, 1 cun below LU2, in the 1st intercostal space.',t:'Oblique 0.5–0.8 cun.',k:'Oblique along the intercostal space to avoid the lung.'},
+  {c:'LU5',n:'Chize',m:'Lung',r:'Arm & Hand',loc:'On the cubital crease, radial to the biceps tendon.',t:'Perpendicular 0.5–1 cun.',k:'Avoid the brachial artery.'},
+  {c:'LU7',n:'Lieque',m:'Lung',r:'Arm & Hand',loc:'1.5 cun proximal to the wrist crease, in the cleft between the brachioradialis and APL tendons.',t:'Oblique 0.3–0.5 cun.',k:''},
+  {c:'LU9',n:'Taiyuan',m:'Lung',r:'Arm & Hand',loc:'At the radial end of the wrist crease, in the depression radial to the radial artery.',t:'Perpendicular 0.3–0.5 cun.',k:''},
+  {c:'LU11',n:'Shaoshang',m:'Lung',r:'Arm & Hand',loc:'On the radial side of the thumb, 0.1 cun proximal to the nail corner.',t:'Oblique 0.1–0.2 cun.',k:'Very sensitive; good for pricking.'},
+  {c:'SI3',n:'Houxi',m:'Small Intestine',r:'Arm & Hand',loc:'Proximal to the head of the 5th metacarpal, on the ulnar border, at the red-white junction.',t:'Perpendicular 0.5–0.8 cun.',k:'Use a loose fist.'},
+  {c:'SI5',n:'Yanggu',m:'Small Intestine',r:'Arm & Hand',loc:'In the depression between the ulnar styloid and the triquetral bone.',t:'Perpendicular 0.3–0.5 cun.',k:''},
+  {c:'SI6',n:'Yanglao',m:'Small Intestine',r:'Arm & Hand',loc:'In the bony cleft on the radial side of the ulnar styloid.',t:'Perpendicular 0.3–0.5 cun.',k:''},
+  {c:'SI8',n:'Xiaohai',m:'Small Intestine',r:'Arm & Hand',loc:'In the depression between the olecranon and the medial epicondyle.',t:'Perpendicular 0.5–0.8 cun.',k:''},
+  {c:'SI9',n:'Jianzhen',m:'Small Intestine',r:'Neck & Shoulder',loc:'1 cun superior to the posterior axillary fold, with the arm abducted.',t:'Perpendicular 1–1.5 cun.',k:''},
+  {c:'SI11',n:'Tianzong',m:'Small Intestine',r:'Upper Back',loc:'In the centre of the infraspinous fossa, at the junction of the upper and middle thirds of the line between SI9 and SI10.',t:'Perpendicular 0.5–1 cun.',k:''},
+  {c:'SI14',n:'Jianwaishu',m:'Small Intestine',r:'Upper Back',loc:'3 cun lateral to the lower border of the T1 spinous process.',t:'Perpendicular 0.5–0.8 cun.',k:''},
+  {c:'SI19',n:'Tinggong',m:'Small Intestine',r:'Head & Face',loc:'Anterior to the tragus, in the depression formed when the mouth opens.',t:'Perpendicular 0.5–1 cun.',k:'Keep the mouth open.'},
+  {c:'CV3',n:'Zhongji',m:'Conception Vessel',r:'Chest & Abdomen',loc:'4 cun inferior to the umbilicus, on the midline.',t:'Perpendicular 0.8–1.2 cun.',k:'Empty the bladder first; avoid in pregnancy.'},
+  {c:'CV4',n:'Guanyuan',m:'Conception Vessel',r:'Chest & Abdomen',loc:'3 cun inferior to the umbilicus, on the midline.',t:'Perpendicular 0.8–1.2 cun.',k:'Empty the bladder first; avoid in pregnancy.'},
+  {c:'CV6',n:'Qihai',m:'Conception Vessel',r:'Chest & Abdomen',loc:'1.5 cun inferior to the umbilicus, on the midline.',t:'Perpendicular 0.8–1.2 cun.',k:'Avoid in pregnancy.'},
+  {c:'CV9',n:'Shuifen',m:'Conception Vessel',r:'Chest & Abdomen',loc:'1 cun superior to the umbilicus, on the midline.',t:'Perpendicular 0.8–1.2 cun.',k:''},
+  {c:'CV12',n:'Zhongwan',m:'Conception Vessel',r:'Chest & Abdomen',loc:'4 cun superior to the umbilicus, on the midline.',t:'Perpendicular 0.8–1.2 cun.',k:'Caution in the very thin — the stomach lies deep.'},
+  {c:'CV17',n:'Shanzhong',m:'Conception Vessel',r:'Chest & Abdomen',loc:'On the midline at the level of the 4th intercostal space, midway between the nipples.',t:'Transverse or oblique 0.3–0.5 cun.',k:'Thin patients: needle obliquely to avoid the sternum.'},
+  {c:'CV22',n:'Tiantu',m:'Conception Vessel',r:'Chest & Abdomen',loc:'In the suprasternal notch, 0.5 cun superior to the sternum.',t:'Oblique 0.3–0.5 cun, downward along the posterior border of the sternum.',k:'Do not needle perpendicular — risk to the trachea.'},
+  {c:'CV23',n:'Lianquan',m:'Conception Vessel',r:'Head & Face',loc:'In the depression above the hyoid bone, on the midline.',t:'Oblique 0.5–0.8 cun toward the root of the tongue.',k:'Have the patient keep the mouth open.'},
+  {c:'DU3',n:'Yaoyangguan',m:'Governing Vessel',r:'Lower Back & Hip',loc:'On the midline, in the space below the L4 spinous process.',t:'Oblique 0.5–1 cun, slightly upward.',k:''},
+  {c:'DU4',n:'Mingmen',m:'Governing Vessel',r:'Lower Back & Hip',loc:'On the midline, in the space below the L2 spinous process.',t:'Oblique 0.5–1 cun, slightly upward.',k:''},
+  {c:'DU14',n:'Dazhui',m:'Governing Vessel',r:'Upper Back',loc:'On the midline, in the space below the C7 spinous process.',t:'Oblique 0.5–1 cun, slightly upward.',k:'Avoid deep needling — the spinal canal is close.'},
+  {c:'DU16',n:'Fengfu',m:'Governing Vessel',r:'Head & Face',loc:'1 cun superior to the posterior hairline, in the depression below the external occipital protuberance.',t:'Oblique 0.5–0.8 cun, downward.',k:'Point the needle toward the throat; avoid the medulla.'},
+  {c:'DU20',n:'Baihui',m:'Governing Vessel',r:'Head & Face',loc:'5 cun superior to the anterior hairline, on the midline at the vertex.',t:'Transverse 0.5–0.8 cun.',k:''},
+  {c:'DU24',n:'Shenting',m:'Governing Vessel',r:'Head & Face',loc:'0.5 cun superior to the anterior hairline, on the midline.',t:'Transverse 0.3–0.5 cun, anteriorly or posteriorly.',k:''},
+  {c:'EX-HN3',n:'Yintang',m:'Extra point',r:'Head & Face',loc:'Midway between the medial ends of the eyebrows.',t:'Transverse 0.3–0.5 cun, downward.',k:''},
+  {c:'EX-HN5',n:'Taiyang',m:'Extra point',r:'Head & Face',loc:'In the depression about 1 cun posterior to the midpoint of the eyebrow and the outer canthus.',t:'Perpendicular or transverse 0.3–0.5 cun.',k:'Avoid the superficial temporal artery.'},
+  {c:'EX-HN22',n:'Anmian',m:'Extra point',r:'Head & Face',loc:'Midway between TE17 and GB20, behind the ear, at the level of the earlobe.',t:'Perpendicular 0.5–0.8 cun.',k:''},
+  {c:'EX-B1',n:'Dingchuan',m:'Extra point',r:'Upper Back',loc:'0.5 cun lateral to the lower border of the C7 spinous process.',t:'Perpendicular 0.5–0.8 cun.',k:''},
+  {c:'EX-HN4',n:'Yuyao',m:'Extra point',r:'Head & Face',loc:'In the depression at the midpoint of the eyebrow.',t:'Transverse 0.3–0.5 cun.',k:''},
+  {c:'EX-LE5',n:'Xiyan',m:'Extra point',r:'Leg & Foot',loc:'Two points either side of the patellar ligament, with the knee flexed.',t:'Perpendicular 0.5–1 cun into the joint space.',k:'Medial point first; avoid the joint capsule if inflamed.'},
+  {c:'EX-UE9',n:'Baxie',m:'Extra point',r:'Arm & Hand',loc:'Four points on the dorsum of the hand, in the web margins between the fingers.',t:'Oblique 0.3–0.5 cun.',k:''},
+  {c:'EX-B2',n:'Huatuojiaji',m:'Extra point',r:'Upper Back',loc:'0.5 cun lateral to the lower border of each spinous process, T1–L5.',t:'Perpendicular 0.5–1 cun, angled slightly medially.',k:'Choose levels according to the segment involved.'},
+  {c:'EX-HN13',n:'Sishencong',m:'Extra point',r:'Head & Face',loc:'Four points 1 cun anterior, posterior and lateral to DU20.',t:'Transverse 0.5–0.8 cun.',k:''},
+  {c:'EX-CA1',n:'Zigong',m:'Extra point',r:'Chest & Abdomen',loc:'3 cun lateral to CV3, on the lower abdomen.',t:'Perpendicular 0.8–1.2 cun.',k:'Empty the bladder; avoid in pregnancy.'},
+
+  {c:'EAR-SHEN',n:'Shenmen (ear)',m:'Auricular',r:'Ear',loc:'Triangular fossa, at the bifurcation of the superior crus of the antihelix.',t:'Oblique 0.1–0.2 cun, or press tack / seed.',k:'Cartilage is sensitive; warn the patient. Watch for chondritis with indwelling needles.'},
+  {c:'EAR-SYM',n:'Sympathetic',m:'Auricular',r:'Ear',loc:'Inferior crus of the antihelix, medial end.',t:'Oblique 0.1–0.2 cun, or press tack.',k:'Same as Shenmen.'},
+  {c:'EAR-ZERO',n:'Point zero',m:'Auricular',r:'Ear',loc:'Between the ear apex and the root of the tragus, on the helix.',t:'Oblique 0.1–0.2 cun, or press tack.',k:'Cartilage only.'},
+  {c:'EAR-HUNG',n:'Hunger',m:'Auricular',r:'Ear',loc:'On the root of the tragus, midway between the ear canal and the tragus root.',t:'Oblique 0.1–0.2 cun, or press tack.',k:'Cartilage only.'},
+  {c:'EAR-STOM',n:'Stomach (ear)',m:'Auricular',r:'Ear',loc:'Posterior wall of the cymba conchae, lateral third.',t:'Oblique 0.1–0.2 cun, or press tack.',k:'Cartilage only.'},
+  {c:'EAR-SPLEEN',n:'Spleen (ear)',m:'Auricular',r:'Ear',loc:'Posterior wall of the cymba conchae, medial third.',t:'Oblique 0.1–0.2 cun, or press tack.',k:'Cartilage only.'},
+  {c:'EAR-ENDO',n:'Endocrine',m:'Auricular',r:'Ear',loc:'In the intertragic notch.',t:'Oblique 0.1–0.2 cun, or press tack.',k:'Cartilage only.'},
+  {c:'EAR-KID',n:'Kidney (ear)',m:'Auricular',r:'Ear',loc:'Posterior wall of the cymba conchae, lower third.',t:'Oblique 0.1–0.2 cun, or press tack.',k:'Cartilage only.'},
+  {c:'EAR-LIV',n:'Liver (ear)',m:'Auricular',r:'Ear',loc:'Posterior wall of the cymba conchae, medial-inferior aspect.',t:'Oblique 0.1–0.2 cun, or press tack.',k:'Cartilage only.'},
+  {c:'EAR-HEART',n:'Heart (ear)',m:'Auricular',r:'Ear',loc:'Centre of the cavum conchae.',t:'Oblique 0.1–0.2 cun, or press tack.',k:'Cartilage only.'},
+  {c:'EAR-LUNG',n:'Lung (ear)',m:'Auricular',r:'Ear',loc:'Cavum conchae, around the Heart point — two zones, upper and lower.',t:'Oblique 0.1–0.2 cun, or press tack.',k:'Cartilage only.'},
+  {c:'EAR-SUB',n:'Subcortex',m:'Auricular',r:'Ear',loc:'Medial aspect of the antihelix, at the junction of the superior and inferior crura.',t:'Oblique 0.1–0.2 cun, or press tack.',k:'Cartilage only.'},
+  {c:'EAR-OCC',n:'Occiput',m:'Auricular',r:'Ear',loc:'Posterior surface of the antihelix, at the junction of the upper and lower antihelix.',t:'Oblique 0.1–0.2 cun, or press tack.',k:'Cartilage only.'},
+  {c:'EAR-NECK',n:'Neck (ear)',m:'Auricular',r:'Ear',loc:'On the antihelix, just below the occiput zone.',t:'Oblique 0.1–0.2 cun, or press tack.',k:'Cartilage only.'},
+  {c:'EAR-SHOU',n:'Shoulder (ear)',m:'Auricular',r:'Ear',loc:'On the scapha, at the midpoint of the upper scapha.',t:'Oblique 0.1–0.2 cun, or press tack.',k:'Cartilage only.'},
+  {c:'EAR-LBACK',n:'Lower back (ear)',m:'Auricular',r:'Ear',loc:'On the antihelix, lower portion, near the tail.',t:'Oblique 0.1–0.2 cun, or press tack.',k:'Cartilage only.'},
+  {c:'EAR-KNEE',n:'Knee (ear)',m:'Auricular',r:'Ear',loc:'In the scaphoid fossa, at the level of the mid-helix.',t:'Oblique 0.1–0.2 cun, or press tack.',k:'Cartilage only.'},
+  {c:'EAR-ANKLE',n:'Ankle (ear)',m:'Auricular',r:'Ear',loc:'In the scaphoid fossa, lower third.',t:'Oblique 0.1–0.2 cun, or press tack.',k:'Cartilage only.'},
+  {c:'EAR-WRIST',n:'Wrist (ear)',m:'Auricular',r:'Ear',loc:'In the scaphoid fossa, upper third.',t:'Oblique 0.1–0.2 cun, or press tack.',k:'Cartilage only.'},
+  {c:'EAR-ADREN',n:'Adrenal',m:'Auricular',r:'Ear',loc:'On the tragus, at the lower end of the tragus rim.',t:'Oblique 0.1–0.2 cun, or press tack.',k:'Cartilage only.'},
+  {c:'EAR-JAW',n:'Jaw',m:'Auricular',r:'Ear',loc:'On the tragus, upper portion.',t:'Oblique 0.1–0.2 cun, or press tack.',k:'Cartilage only.'},
+  {c:'EAR-INNER',n:'Inner ear',m:'Auricular',r:'Ear',loc:'Posterior-inferior to the ear canal opening, on the tragus.',t:'Oblique 0.1–0.2 cun, or press tack.',k:'Cartilage only.'},
+  {c:'EAR-OVARY',n:'Ovary',m:'Auricular',r:'Ear',loc:'On the posterior surface of the antihelix, at the level of the inferior crus.',t:'Oblique 0.1–0.2 cun, or press tack.',k:'Cartilage only.'}
+];
+
+const S = [
+  {id:'h_front',l:'Frontal headache',cat:'Head & face',p:{LI4:3,'EX-HN3':2,ST2:2,GB14:2,LIV3:2,LI20:1,DU24:1}},
+  {id:'h_temp',l:'Migraine / temporal headache',cat:'Head & face',p:{GB20:3,'EX-HN5':3,LIV3:3,GB8:2,LI4:2,GB41:2,GB14:1,'EAR-SYM':1}},
+  {id:'h_occ',l:'Occipital headache',cat:'Head & face',p:{GB20:3,BL10:3,SI3:2,LI4:2,DU16:1,BL60:1,'EAR-OCC':1}},
+  {id:'eye',l:'Eye strain / dry eyes',cat:'Head & face',p:{BL1:3,'EX-HN4':3,GB20:2,LIV3:2,LI4:1,KI3:1}},
+  {id:'sinus',l:'Sinus pressure',cat:'Head & face',p:{LI20:3,'EX-HN3':3,ST2:2,LI4:2,GB14:1,LI11:1}},
+  {id:'tooth',l:'Toothache',cat:'Head & face',p:{LI4:3,ST44:3,ST6:2,LI11:1,ST7:1}},
+  {id:'jaw',l:'Jaw tension / TMJ',cat:'Head & face',p:{ST6:3,ST7:3,SI19:2,TE17:2,LI4:2,GB20:1,'EAR-JAW':2}},
+  {id:'tinnitus',l:'Tinnitus',cat:'Head & face',p:{SI19:3,KI3:3,TE17:2,GB2:2,GB20:2,LI4:1,'EAR-INNER':2,'EAR-KID':1}},
+  {id:'dizzy',l:'Dizziness / vertigo',cat:'Head & face',p:{GB20:3,PC6:2,DU20:2,ST36:2,LIV3:2,GB34:1,'EAR-INNER':2,'EAR-SUB':1}},
+
+  {id:'neck',l:'Stiff neck',cat:'Neck & shoulder',p:{GB20:3,BL10:3,SI3:3,LI4:2,GB21:2,BL60:1,'EAR-NECK':1}},
+  {id:'shoulder',l:'Shoulder pain',cat:'Neck & shoulder',p:{LI15:3,SI9:3,GB21:3,SI11:2,TE14:2,LI11:1,'EAR-SHOU':2}},
+  {id:'trap',l:'Trapezius tension',cat:'Neck & shoulder',p:{GB21:3,SI11:2,GB20:2,LI4:2,SI14:1}},
+
+  {id:'uback',l:'Upper back tension',cat:'Back & hip',p:{'EX-B2':3,SI11:2,BL13:2,GB21:2,SI14:1}},
+  {id:'lback',l:'Low back pain',cat:'Back & hip',p:{BL23:3,BL25:3,BL40:3,DU3:2,SI3:2,BL60:2,'EAR-LBACK':2}},
+  {id:'sciatica',l:'Sciatica',cat:'Back & hip',p:{GB30:3,BL54:3,BL40:3,BL60:2,GB34:2,BL23:1,'EAR-LBACK':1}},
+  {id:'hip',l:'Hip pain',cat:'Back & hip',p:{GB30:3,GB29:3,BL54:2,GB34:2,SI3:1}},
+  {id:'si',l:'Sacroiliac pain',cat:'Back & hip',p:{BL32:3,BL28:2,GB30:2,BL40:1}},
+
+  {id:'elbow',l:'Elbow pain',cat:'Arm & hand',p:{LI11:3,LI10:3,TE5:2,LI4:2,SI8:2}},
+  {id:'wrist',l:'Wrist pain',cat:'Arm & hand',p:{PC7:3,TE4:3,LI5:2,LI4:1,SI5:1,'EAR-WRIST':2}},
+  {id:'numb',l:'Hand numbness / carpal tunnel',cat:'Arm & hand',p:{PC7:3,PC6:2,TE4:2,LI4:2,LI10:1,LI11:1,'EAR-WRIST':1}},
+  {id:'fingers',l:'Finger pain',cat:'Arm & hand',p:{'EX-UE9':3,LI4:2,TE3:2,PC8:1}},
+
+  {id:'knee',l:'Knee pain',cat:'Leg & foot',p:{ST35:3,'EX-LE5':3,ST36:2,SP9:2,GB34:2,BL40:1,'EAR-KNEE':2}},
+  {id:'ankle',l:'Ankle sprain',cat:'Leg & foot',p:{GB40:3,BL60:2,ST41:2,KI3:1,SP5:1,'EAR-ANKLE':2}},
+  {id:'heel',l:'Heel pain / plantar fasciitis',cat:'Leg & foot',p:{BL60:3,KI3:3,KI1:2,GB40:2,BL61:1}},
+  {id:'calf',l:'Calf tightness',cat:'Leg & foot',p:{BL57:3,BL40:2,BL60:1,ST36:1}},
+  {id:'coldfeet',l:'Cold hands and feet',cat:'Leg & foot',p:{KI1:2,LI4:2,PC6:2,SP6:1,DU4:1}},
+  {id:'edema',l:'Leg heaviness / oedema',cat:'Leg & foot',p:{SP9:3,SP6:2,ST36:2,KI7:2,BL22:1,CV9:1}},
+
+  {id:'nausea',l:'Nausea',cat:'Digestion',p:{PC6:3,ST36:3,CV12:2,SP4:2,LI4:1,'EAR-STOM':1}},
+  {id:'vomit',l:'Vomiting',cat:'Digestion',p:{PC6:3,CV12:3,ST36:2,SP4:1}},
+  {id:'bloat',l:'Bloating / distension',cat:'Digestion',p:{CV12:3,SP4:3,ST25:2,ST36:2,BL20:2,LIV13:1}},
+  {id:'const',l:'Constipation',cat:'Digestion',p:{ST25:3,TE6:3,LI11:2,ST36:2,BL25:2,CV6:1}},
+  {id:'diarr',l:'Diarrhoea',cat:'Digestion',p:{ST25:3,ST36:3,SP4:2,SP9:2,CV6:2,BL25:1}},
+  {id:'reflux',l:'Acid reflux',cat:'Digestion',p:{CV12:3,PC6:3,ST36:2,CV17:1,LI11:1}},
+  {id:'appetite',l:'Poor appetite',cat:'Digestion',p:{ST36:3,CV12:2,SP4:2,BL20:2,LI11:1}},
+  {id:'hiccup',l:'Hiccups',cat:'Digestion',p:{CV12:2,PC6:2,CV17:2,ST36:1}},
+  {id:'hangover',l:'Hangover',cat:'Digestion',p:{LI4:2,ST36:2,PC6:2,GB20:2,LIV3:2,SP9:1}},
+
+  {id:'cough',l:'Cough',cat:'Respiratory & ENT',p:{LU7:3,BL13:3,LU5:2,CV22:2,CV17:2,'EX-B1':1}},
+  {id:'throat',l:'Sore throat',cat:'Respiratory & ENT',p:{LU11:3,LU7:2,LI4:2,CV23:2,KI6:2}},
+  {id:'nasal',l:'Nasal congestion',cat:'Respiratory & ENT',p:{LI20:3,LI4:3,'EX-HN3':2,BL2:2,LI11:2,GB20:1}},
+  {id:'wheeze',l:'Wheezing / asthma',cat:'Respiratory & ENT',p:{'EX-B1':3,CV17:3,LU5:2,BL13:2,CV22:2,KI3:1}},
+  {id:'fever',l:'Fever / early cold',cat:'Respiratory & ENT',p:{DU14:3,LI4:3,LI11:3,GB20:2,LU7:2,TE5:1}},
+  {id:'allergy',l:'Allergic rhinitis',cat:'Respiratory & ENT',p:{LI4:3,LI11:3,LI20:2,BL13:2,SP10:2,ST36:1}},
+
+  {id:'insomnia',l:'Insomnia',cat:'Sleep & mood',p:{HT7:3,'EX-HN22':3,'EX-HN3':3,SP6:2,PC6:2,DU20:1,KI6:1,'EAR-SHEN':2,'EAR-SUB':1}},
+  {id:'anxiety',l:'Anxiety',cat:'Sleep & mood',p:{HT7:3,'EX-HN3':2,PC6:2,DU20:2,LIV3:2,CV17:2,ST36:1,'EAR-SHEN':2}},
+  {id:'stress',l:'Stress / tension',cat:'Sleep & mood',p:{'EX-HN3':2,DU20:2,GB20:2,LIV3:2,PC6:2,HT7:2,'EAR-SHEN':1}},
+  {id:'lowmood',l:'Low mood',cat:'Sleep & mood',p:{DU20:3,'EX-HN3':3,HT7:2,PC6:2,LIV3:2,CV17:1,'EAR-SHEN':1}},
+  {id:'irritable',l:'Irritability',cat:'Sleep & mood',p:{LIV3:3,LIV2:2,GB20:2,HT7:2,'EAR-SHEN':1}},
+  {id:'fatigue',l:'Fatigue',cat:'Sleep & mood',p:{ST36:3,CV6:2,DU20:2,SP6:2,BL23:2,LI4:1}},
+
+  {id:'cramps',l:'Menstrual cramps',cat:"Women's health",p:{SP6:3,CV4:3,SP8:3,BL32:2,LIV3:2,ST36:1,'EAR-ENDO':2,'EAR-OVARY':1}},
+  {id:'irregular',l:'Irregular periods',cat:"Women's health",p:{SP6:3,CV4:2,SP8:2,LIV3:2,KI3:2,BL23:1,'EAR-OVARY':1}},
+  {id:'pms',l:'PMS',cat:"Women's health",p:{LIV3:3,SP6:2,LIV2:2,CV4:2,HT7:1,LI4:1,'EAR-ENDO':1}},
+  {id:'hotflash',l:'Hot flashes',cat:"Women's health",p:{KI3:3,KI6:2,SP6:2,CV4:2,DU4:1,LU7:1,HT6:1,'EAR-ENDO':1}},
+  {id:'breast',l:'Breast tenderness',cat:"Women's health",p:{CV17:3,LIV3:2,GB21:2,LIV14:1,'EX-CA1':1}},
+
+  {id:'urinary',l:'Frequent urination',cat:"Men's & urinary",p:{CV3:3,CV4:3,BL23:2,KI3:2,SP6:2,BL32:1}},
+  {id:'prostate',l:'Prostate / urinary discomfort',cat:"Men's & urinary",p:{CV3:3,BL28:3,SP6:2,KI3:2,CV4:1}},
+  {id:'libido',l:'Low libido',cat:"Men's & urinary",p:{CV4:3,DU4:3,BL23:2,KI3:2,SP6:1}},
+
+  {id:'bp',l:'Raised blood pressure',cat:'General',p:{LIV3:3,GB20:3,ST36:2,LI11:2,PC6:2,DU20:1}},
+  {id:'immune',l:'Immune support',cat:'General',p:{ST36:3,DU14:2,LI11:2,SP10:1,BL13:1}},
+  {id:'smoking',l:'Smoking cessation',cat:'General',p:{LI4:2,TE5:2,LU7:2,ST36:1,'EX-HN3':1,'EAR-HUNG':2,'EAR-LUNG':1}},
+  {id:'weight',l:'Appetite / weight management',cat:'General',p:{ST36:2,ST25:2,CV12:2,SP4:2,LI11:1,'EAR-HUNG':2}},
+  {id:'sore',l:'Muscle soreness / recovery',cat:'General',p:{LI4:2,LI11:2,GB34:2,BL40:2,ST36:2}},
+  {id:'stiff',l:'General stiffness',cat:'General',p:{GB20:2,GB34:2,LI11:2,BL40:2,'EX-B2':2}}
+];
+
+const PAT = [
+  {id:'windcold',n:'Wind-cold',d:'Aversion to cold, clear nasal discharge, stiff neck, no sweating, thin white coat.',p:{DU14:3,LI4:3,LU7:3,GB20:2,BL13:2}},
+  {id:'windheat',n:'Wind-heat',d:'Sore throat, yellow discharge, fever with slight aversion to heat, red throat.',p:{LI11:3,LU11:3,DU14:3,LI4:2,BL13:1}},
+  {id:'qistag',n:'Qi stagnation',d:'Distending pain that moves, worse with emotion, sighing, wiry pulse.',p:{LIV3:3,LIV14:2,GB34:2,CV17:2,TE6:2}},
+  {id:'bloodstasis',n:'Blood stasis',d:'Fixed stabbing pain, worse at night, dark complexion, purple tongue.',p:{SP10:3,BL17:3,LIV3:2,PC6:2,CV4:1}},
+  {id:'dampheat',n:'Damp-heat',d:'Heaviness, sticky sensation, yellow greasy coat, bitter taste.',p:{SP9:3,LI11:3,GB34:2,ST44:2,BL22:1}},
+  {id:'phlegm',n:'Phlegm-damp',d:'Heaviness, foggy head, loose stools, greasy coat, slippery pulse.',p:{ST40:3,SP9:2,CV12:2,PC6:2,BL20:1}},
+  {id:'qidef',n:'Qi deficiency',d:'Fatigue, shortness of breath on exertion, spontaneous sweating, pale tongue.',p:{ST36:3,CV6:2,SP6:2,BL20:2,DU20:1}},
+  {id:'blooddef',n:'Blood deficiency',d:'Pale complexion, dizziness, dry skin, scanty periods, pale tongue.',p:{ST36:3,SP6:3,BL17:2,BL20:2,HT7:1}},
+  {id:'yindef',n:'Yin deficiency',d:'Night sweats, dry mouth and throat, five-palm heat, red peeled tongue.',p:{KI3:3,KI6:2,SP6:2,LU7:2,HT6:1}},
+  {id:'yangdef',n:'Yang deficiency',d:'Cold limbs, aversion to cold, pale swollen tongue, deep weak pulse.',p:{DU4:3,CV4:3,CV6:2,BL23:2,ST36:1}},
+  {id:'liveryang',n:'Liver yang rising',d:'Throbbing headache, dizziness, irritability, red face, wiry pulse.',p:{LIV3:3,GB20:3,GB34:2,KI3:2,DU20:1}},
+  {id:'heartfire',n:'Heart fire',d:'Insomnia, mouth ulcers, palpitations, red tongue tip.',p:{HT7:3,HT8:2,PC8:2,PC6:1,'EAR-HEART':1}}
+];
+
+const MAP = {}; P.forEach(p => MAP[p.c] = p);
+const PMAP = {}; PAT.forEach(p => PMAP[p.id] = p);
+const SMAP = {}; S.forEach(s => SMAP[s.id] = s);
+
+const TON = ['ST36','CV4','CV6','CV12','CV3','BL20','BL21','BL22','BL23','DU4','DU3','SP6','KI3','KI1','LU9','SP3','LI10','CV9'];
+const SED = ['LI4','LIV3','LIV2','LIV8','GB20','GB21','GB8','GB41','BL40','BL60','BL10','PC6','PC8','ST44','ST40','ST25','ST7','SP9','SP10','LI11','LI5','SI5','SI19','DU14','LU11','TE6','GB30','GB34','BL54','EX-HN5','LI20'];
+function method(c){
+  if (MAP[c].m === 'Auricular') return {txt:'Press tack or seed, retain 2–3 days', ton:false};
+  if (TON.includes(c)) return {txt:'Tonify — reinforcing method, 10–15 min', ton:true};
+  if (SED.includes(c)) return {txt:'Sedate — reducing method, 15–20 min', ton:false};
+  return {txt:'Even method, 15 min', ton:false};
+}
+
+let state = {sel:[], plan:[], pats:[], pat:[], region:'', mer:'', q:'', cur:null};
+try { const raw = localStorage.getItem(LS); if (raw) state = Object.assign(state, JSON.parse(raw)); } catch(e){}
+if (localStorage.getItem('acc_disc') === 'off') $('disc').style.display = 'none';
+
+const save = () => localStorage.setItem(LS, JSON.stringify({sel:state.sel, plan:state.plan, pats:state.pats, pat:state.pat, cur:state.cur}));
+const uid = () => Math.random().toString(36).slice(2,9);
+
+function buildFilters(){
+  [...new Set(P.map(p=>p.r))].sort().forEach(r=>{ const o=document.createElement('option'); o.value=r; o.textContent=r; $('regionF').appendChild(o); });
+  [...new Set(P.map(p=>p.m))].sort().forEach(m=>{ const o=document.createElement('option'); o.value=m; o.textContent=m; $('merF').appendChild(o); });
+}
+
+function renderSymptoms(){
+  const box = $('symptoms'); box.innerHTML = '';
+  const q = state.q.toLowerCase();
+  const cats = [];
+  S.forEach(s => { if (q && !s.l.toLowerCase().includes(q)) return; if (!cats.includes(s.cat)) cats.push(s.cat); });
+  if (!cats.length){ box.innerHTML = '<p class="foot">No symptom matches.</p>'; return; }
+  cats.forEach(cat => {
+    const h = document.createElement('div'); h.className='cat'; h.textContent = cat; box.appendChild(h);
+    S.filter(s=>s.cat===cat && (!q || s.l.toLowerCase().includes(q))).forEach(s=>{
+      const lab = document.createElement('label'); lab.className = 'sym' + (state.sel.includes(s.id)?' on':'');
+      const cb = document.createElement('input'); cb.type='checkbox'; cb.checked = state.sel.includes(s.id);
+      cb.onchange = () => { state.sel = cb.checked ? [...state.sel, s.id] : state.sel.filter(x=>x!==s.id); save(); renderSymptoms(); render(); };
+      lab.appendChild(cb); lab.appendChild(document.createTextNode(s.l));
+      box.appendChild(lab);
+    });
+  });
+}
+
+function renderPatterns(){
+  const box = $('patterns'); box.innerHTML = '';
+  PAT.forEach(pt => {
+    const d = document.createElement('div');
+    d.className = 'patcard' + (state.pat.includes(pt.id)?' on':'');
+    d.innerHTML = '<b>' + pt.n + '</b><span>' + pt.d + '</span>';
+    d.onclick = () => { state.pat = state.pat.includes(pt.id) ? state.pat.filter(x=>x!==pt.id) : [...state.pat, pt.id]; save(); renderPatterns(); render(); };
+    box.appendChild(d);
+  });
+}
+
+function scored(){
+  const agg = {};
+  state.sel.forEach(id => { const s = SMAP[id]; if (!s) return; for (const c in s.p) agg[c] = (agg[c]||0) + s.p[c]; });
+  state.pat.forEach(id => { const s = PMAP[id]; if (!s) return; for (const c in s.p) agg[c] = (agg[c]||0) + s.p[c] * 0.8; });
+  return Object.entries(agg).map(([c,score]) => {
+    const why = [];
+    state.sel.forEach(id => { if (SMAP[id] && SMAP[id].p[c]) why.push(SMAP[id].l); });
+    state.pat.forEach(id => { if (PMAP[id] && PMAP[id].p[c]) why.push(PMAP[id].n + ' pattern'); });
+    return {p:MAP[c], score, why};
+  }).filter(x => x.p && (!state.region || x.p.r === state.region) && (!state.mer || x.p.m === state.mer))
+    .sort((a,b)=> b.score - a.score || a.p.c.localeCompare(b.p.c));
+}
+
+function render(){
+  const list = scored();
+  const res = $('results');
+  const banner = $('patBanner');
+  if (state.pat.length){
+    banner.hidden = false;
+    banner.innerHTML = '<b>Pattern:</b> ' + state.pat.map(id=>PMAP[id]?PMAP[id].n:id).join(', ') + ' — root points added below.';
+  } else banner.hidden = true;
+
+  if (!state.sel.length && !state.pat.length){
+    res.innerHTML = '<div class="empty"><p>Nothing selected yet.</p><p class="muted">Pick symptoms such as <em>low back pain</em>, <em>nausea</em> or <em>insomnia</em> to generate a point set.</p></div>';
+    $('count').textContent = 'No symptoms selected';
+  } else {
+    $('count').innerHTML = '<b>' + state.sel.length + '</b> symptom' + (state.sel.length===1?'':'s') + ' · <b>' + list.length + '</b> point' + (list.length===1?'':'s') + ' matched';
+    if (!list.length){ res.innerHTML = '<div class="empty"><p>No points match the current region/meridian filters.</p></div>'; }
+    else {
+      res.innerHTML = '';
+      let arr = list;
+      if ($('sortF').value === 'region') arr = [...list].sort((a,b)=> a.p.r.localeCompare(b.p.r) || b.score-a.score);
+      arr.slice(0,26).forEach(({p,score,why}) => {
+        const m = method(p.c);
+        const d = document.createElement('div');
+        d.className = 'pt s' + Math.min(Math.round(score),3);
+        const inPlan = state.plan.includes(p.c);
+        d.innerHTML = '<div class="pt-head"><span class="code">' + p.c + '</span><span class="name">' + p.n + '</span><span class="mer">' + p.m + ' · ' + p.r + '</span></div>' +
+          '<p><span class="k">Location</span> ' + p.loc + '</p>' +
+          '<p><span class="k">Needling</span> ' + p.t + '</p>' +
+          '<p><span class="k">Method</span> <span class="tag ' + (m.ton?'ton':'') + '">' + m.txt + '</span></p>' +
+          (p.k ? '<p class="cau"><span class="k">Caution</span> ' + p.k + '</p>' : '') +
+          '<div class="why">For <span>' + why.join(', ') + '</span></div>';
+        const b = document.createElement('button');
+        b.className = 'add' + (inPlan?' in':'');
+        b.textContent = inPlan ? 'In treatment set' : '+ Add to set';
+        b.onclick = () => { state.plan = inPlan ? state.plan.filter(x=>x!==p.c) : [...state.plan, p.c]; save(); render(); };
+        d.appendChild(b);
+        res.appendChild(d);
+      });
+    }
+  }
+  renderPlan();
+}
+
+function renderPlan(){
+  const wrap = $('planWrap');
+  wrap.hidden = state.plan.length === 0;
+  $('planN').textContent = state.plan.length;
+  const ol = $('planList'); ol.innerHTML = '';
+  state.plan.forEach(c => {
+    const p = MAP[c]; if (!p) return;
+    const m = method(c);
+    const li = document.createElement('li');
+    li.innerHTML = '<span class="code">' + p.c + '</span> <strong>' + p.n + '</strong> — <span class="loc">' + p.loc + '</span><span class="meth">' + m.txt + (p.k ? ' · caution: ' + p.k : '') + '</span>';
+    const x = document.createElement('button'); x.textContent = '×'; x.title = 'Remove';
+    x.onclick = () => { state.plan = state.plan.filter(y=>y!==c); save(); render(); };
+    li.appendChild(x); ol.appendChild(li);
+  });
+  $('planFoot').textContent = state.plan.length ? 'Bilateral unless specified. Order proximal–distal or per your protocol. Ear points unilateral or alternating ears.' : '';
+}
+
+function curName(){ const p = state.pats.find(x=>x.id===state.cur); return p ? p.name : ''; }
+
+function planText(){
+  const ptxt = state.pat.map(id=>PMAP[id]?PMAP[id].n:'').join(', ');
+  return 'Accucure — treatment sheet\n\nPatient: ' + (curName() || '—') +
+    '\nSymptoms: ' + state.sel.map(id=>SMAP[id]?SMAP[id].l:id).join(', ') +
+    (ptxt ? '\nPattern: ' + ptxt : '') +
+    '\n\n' + state.plan.map((c,i)=>{ const p=MAP[c]; return (i+1)+'. '+p.c+' '+p.n+' — '+p.loc+' ('+p.t+') ['+method(c).txt+']'+(p.k?' CAUTION: '+p.k:''); }).join('\n');
+}
+
+function renderPats(){
+  const sel = $('patSel'); sel.innerHTML = '<option value="">No patient selected</option>';
+  state.pats.forEach(p => { const o = document.createElement('option'); o.value = p.id; o.textContent = p.name; sel.appendChild(o); });
+  sel.value = state.cur || '';
+}
+
+function renderRecs(){
+  const box = $('recPanel');
+  const p = state.pats.find(x=>x.id===state.cur);
+  if (!p){ box.innerHTML = '<span class="foot">Select or create a patient to see records.</span>'; return; }
+  box.innerHTML = '<b>' + p.name + '</b>' + (p.note?' · <span class="foot">'+p.note+'</span>':'');
+  if (!p.sessions || !p.sessions.length){ box.innerHTML += '<div class="foot" style="margin-top:4px">No saved sessions yet.</div>'; return; }
+  p.sessions.forEach(s => {
+    const d = document.createElement('div'); d.className = 'rec';
+    d.innerHTML = '<span class="muted">' + new Date(s.date).toLocaleString() + '</span><br>' +
+      (s.patterns.length ? '<em>' + s.patterns.join(', ') + '</em> · ' : '') +
+      s.symptoms.join(', ') + ' — ' + s.plan.length + ' points ';
+    const b = document.createElement('button'); b.className='ghost'; b.textContent = 'Load';
+    b.onclick = () => { state.sel = s.sel || []; state.pat = s.pat || []; state.plan = s.plan || []; save(); renderSymptoms(); renderPatterns(); render(); };
+    d.appendChild(b); box.appendChild(d);
+  });
+}
+
+/* ---------- export ---------- */
+function download(name, text, type){
+  try {
+    const blob = new Blob([text], {type: type || 'text/html;charset=utf-8'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url), 5000);
+    return true;
+  } catch(e){ return false; }
+}
+function appSource(){
+  const clone = document.documentElement.cloneNode(true);
+  ['#results','#symptoms','#patterns','#planList','#recPanel','#patBanner','#boxWrap'].forEach(s=>{ const n = clone.querySelector(s); if (n) n.innerHTML = ''; });
+  let html = '<!DOCTYPE html>' + clone.outerHTML;
+  html = html.replace(/<head([^>]*)>/, '<head$1><meta charset="utf-8"><title>Accucure</title>');
+  return html;
+}
+async function copyText(text){
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.setAttribute('readonly','');
+    ta.style.position = 'absolute'; ta.style.left = '-9999px'; ta.style.top = '0';
+    document.body.appendChild(ta);
+    ta.focus(); ta.select();
+    ta.setSelectionRange(0, text.length);
+    const ok = document.execCommand('copy');
+    document.body.removeChild(ta);
+    if (ok) return true;
+  } catch(e){}
+  try { await navigator.clipboard.writeText(text); return true; } catch(e){ return false; }
+}
+function showBox(){
+  const w = $('boxWrap'); if (w.firstChild) return;
+  const ta = document.createElement('textarea');
+  ta.className = 'srcbox'; ta.value = appSource(); ta.readOnly = true;
+  w.appendChild(ta);
+  setTimeout(()=>{ ta.focus(); ta.setSelectionRange(0,0); }, 50);
+}
+
+$('copySrc').onclick = async () => {
+  const ok = await copyText(appSource());
+  if (ok){ $('expMsg').textContent = 'Copied. In the repo: Add file → Create new file → index.html → paste → Commit changes.'; }
+  else { showBox(); $('expMsg').textContent = 'Long-press the box below, Select all, then Copy.'; }
+};
+$('dlApp').onclick = () => {
+  const ok = download('index.html', appSource());
+  $('expMsg').textContent = ok
+    ? 'Sent to downloads. If it is not there, use Copy source instead.'
+    : 'Download blocked — use Copy source instead.';
+};
+$('expData').onclick = () => {
+  download('accucure-records.json', JSON.stringify({pats:state.pats, cur:state.cur, sel:state.sel, plan:state.plan, pat:state.pat}, null, 2), 'application/json');
+  $('expMsg').textContent = 'Records exported as JSON.';
+};
+$('impData').onclick = () => $('impFile').click();
+$('impFile').onchange = e => {
+  const f = e.target.files[0]; if (!f) return;
+  const r = new FileReader();
+  r.onload = () => {
+    try {
+      const o = JSON.parse(r.result);
+      if (o.pats) state.pats = o.pats;
+      state.cur = o.cur || state.cur;
+      state.sel = o.sel || []; state.plan = o.plan || []; state.pat = o.pat || [];
+      save(); renderPats(); renderRecs(); renderSymptoms(); renderPatterns(); render();
+      $('expMsg').textContent = 'Records imported.';
+    } catch(err){ $('expMsg').textContent = 'Could not read that file.'; }
+  };
+  r.readAsText(f);
+};
+
+$('q').oninput = e => { state.q = e.target.value; renderSymptoms(); };
+$('regionF').onchange = e => { state.region = e.target.value; render(); };
+$('merF').onchange = e => { state.mer = e.target.value; render(); };
+$('sortF').onchange = render;
+$('clearSym').onclick = () => { state.sel = []; save(); renderSymptoms(); render(); };
+$('clearPat').onclick = () => { state.pat = []; save(); renderPatterns(); render(); };
+$('clearPlan').onclick = () => { state.plan = []; save(); render(); };
+$('clearRegion').onclick = () => { state.region = ''; $('regionF').value = ''; document.querySelectorAll('.bmap .z').forEach(g=>g.classList.remove('on')); render(); };
+$('printPlan').onclick = () => window.print();
+$('copyPlan').onclick = async () => { await copyText(planText()); const b=$('copyPlan'); const o=b.textContent; b.textContent='Copied'; setTimeout(()=>b.textContent=o,1200); };
+$('discClose').onclick = () => { $('disc').style.display='none'; localStorage.setItem('acc_disc','off'); };
+
+document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => {
+  document.querySelectorAll('.tabs button').forEach(x=>x.classList.remove('on')); b.classList.add('on');
+  ['sym','pat','map'].forEach(t => $('tab-'+t).hidden = (t !== b.dataset.tab));
+});
+document.querySelectorAll('.bmap .z').forEach(g => g.onclick = () => {
+  const r = g.dataset.r;
+  state.region = (state.region === r) ? '' : r;
+  $('regionF').value = state.region;
+  document.querySelectorAll('.bmap .z').forEach(x=>x.classList.toggle('on', x.dataset.r === state.region));
+  render();
+});
+
+$('patNew').onclick = () => { $('newPat').hidden = false; $('patName').focus(); };
+$('patCancel').onclick = () => { $('newPat').hidden = true; };
+$('patCreate').onclick = () => {
+  const n = $('patName').value.trim(); if (!n) return;
+  const p = {id:uid(), name:n, note:$('patNote').value.trim(), sessions:[]};
+  state.pats.push(p); state.cur = p.id; state.sel = []; state.pat = []; state.plan = [];
+  $('patName').value = ''; $('patNote').value = ''; $('newPat').hidden = true;
+  save(); renderPats(); renderRecs(); renderSymptoms(); renderPatterns(); render();
+};
+$('patSel').onchange = e => {
+  state.cur = e.target.value || null;
+  const p = state.pats.find(x=>x.id===state.cur);
+  if (p && p.working){ state.sel = p.working.sel || []; state.pat = p.working.pat || []; state.plan = p.working.plan || []; }
+  else { state.sel = []; state.pat = []; state.plan = []; }
+  save(); renderRecs(); renderSymptoms(); renderPatterns(); render();
+};
+$('patSave').onclick = () => {
+  const p = state.pats.find(x=>x.id===state.cur);
+  if (!p){ $('pmsg').textContent = 'Select a patient first'; setTimeout(()=>$('pmsg').textContent='',1800); return; }
+  p.working = {sel:state.sel, plan:state.plan, pat:state.pat};
+  p.sessions.push({date:Date.now(), symptoms:state.sel.map(id=>SMAP[id]?SMAP[id].l:id), patterns:state.pat.map(id=>PMAP[id]?PMAP[id].n:id), plan:[...state.plan], sel:[...state.sel], pat:[...state.pat]});
+  save(); renderRecs();
+  $('pmsg').textContent = 'Session saved'; setTimeout(()=>$('pmsg').textContent='',1800);
+};
+$('patRec').onclick = () => { $('recPanel').hidden = !$('recPanel').hidden; renderRecs(); };
+
+buildFilters(); renderPats(); renderSymptoms(); renderPatterns(); render();
+</script></div><style>:root, html, body { height: auto !important; max-height: 5000px !important; overflow-x: hidden !important; overflow-y: auto !important; background: transparent !important; } html { -webkit-text-size-adjust: 100% !important; text-size-adjust: 100% !important; } </style><script>(function() {var lastHeight = 0;var debounceTimer = null;function reportHeight() {var rect = document.body.getBoundingClientRect();var h = Math.ceil(rect.height);if (h !== lastHeight && h > 0) {lastHeight = h;window.parent.postMessage({ type: "html-sandbox-height", height: h }, "*");}}new ResizeObserver(function() {clearTimeout(debounceTimer);debounceTimer = setTimeout(reportHeight, 100);}).observe(document.body);window.addEventListener("load", function() {window.parent.postMessage({ type: "html-sandbox-ready" }, "*");});document.fonts && document.fonts.ready.then(function() {reportHeight();});})();</script></body></html>
